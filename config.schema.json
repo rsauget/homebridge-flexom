@@ -1,0 +1,89 @@
+{
+  "pluginAlias": "Flexom",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Flexom"
+      },
+      "email": {
+        "title": "Flexom account email",
+        "type": "string",
+        "format": "email",
+        "required": true
+      },
+      "password": {
+        "title": "Flexom account password",
+        "type": "string",
+        "required": true
+      },
+      "zones": {
+        "title": "Show Flexom Zones",
+        "type": "boolean",
+        "required": true,
+        "default": true,
+        "description": "Flexom Zones (i.e. rooms) will appear as devices with light and rolling shutter controls."
+      },
+      "tolerance": {
+        "title": "Factor value tolerance",
+        "type": "number",
+        "required": true,
+        "default": 0.05,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Tolerance on factor update between target and actual value (ratio between 0 and 1, default 0.02). Some devices do not always reach requested target value, mainly window devices. For instance, it may be considered closed by Flexom at 0.01 instead of 0."
+      },
+      "excludeZones": {
+        "title": "Exclude some zones",
+        "type": "boolean",
+        "default": false,
+        "condition": {
+          "functionBody": "return model.zones === true;"
+        }
+      },
+      "excludedZones": {
+        "title": "Excluded zones",
+        "type": "array",
+        "items": {
+          "title": "Zone",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Flexom Zone id",
+              "type": "string",
+              "placeholder": "See accessory serial number in Home app",
+              "required": true
+            },
+            "light": {
+              "title": "Disable Light control for this Zone",
+              "type": "boolean",
+              "required": true,
+              "default": true
+            },
+            "window": {
+              "title": "Disable Window control for this Zone",
+              "type": "boolean",
+              "required": true,
+              "default": true
+            }
+          }
+        },
+        "condition": {
+          "functionBody": "return model.excludeZones === true;"
+        }
+      },
+      "things": {
+        "title": "Show Flexom Things",
+        "type": "boolean",
+        "required": true,
+        "default": false,
+        "description": "CURRENTLY UNSUPPORTED - Flexom Things (i.e. individual devices) will appear as devices with appropriate controls."
+      }
+    }
+  }
+}
