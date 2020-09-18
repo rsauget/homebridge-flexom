@@ -1,0 +1,41 @@
+{
+  "pluginAlias": "Flexom",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Flexom"
+      },
+      "email": {
+        "title": "Flexom account email",
+        "type": "string",
+        "format": "email",
+        "required": true
+      },
+      "password": {
+        "title": "Flexom account password",
+        "type": "string",
+        "required": true
+      },
+      "zones": {
+        "title": "Show Flexom Zones",
+        "type": "boolean",
+        "required": true,
+        "default": true,
+        "description": "Flexom Zones (i.e. rooms) will appear as devices with light and rolling shutter controls."
+      },
+      "things": {
+        "title": "Show Flexom Things",
+        "type": "boolean",
+        "required": true,
+        "default": false,
+        "description": "CURRENTLY UNSUPPORTED - Flexom Things (i.e. individual devices) will appear as devices with appropriate controls."
+      }
+    }
+  }
+}
