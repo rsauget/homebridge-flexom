@@ -21,12 +21,14 @@ export class FlexomZone extends FlexomAccessory {
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Model, 'Zone')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.zone.id);
-    this.setupService();
   }
 
-  private async setupService() {
+  public async setupService() {
     ({ settings: this.zone.settings } = await this.flexom.getZone(this.zone.id));
-    if (this.zone.settings.BRI) {
+    if (!this.zone.settings.BRI && !this.zone.settings.BRIEXT) {
+      return false;
+    }
+    if (!this.lightBulb && this.zone.settings.BRI) {
       this.lightBulb = new LightBulb(
         this.platform,
         this.accessory,
@@ -39,7 +41,7 @@ export class FlexomZone extends FlexomAccessory {
           await this.updateZoneBRI(isOn ? 1 : 0);
         });
     }
-    if (this.zone.settings.BRIEXT) {
+    if (!this.windowCovering && this.zone.settings.BRIEXT) {
       this.windowCovering = new WindowCovering(
         this.platform,
         this.accessory,
@@ -53,6 +55,7 @@ export class FlexomZone extends FlexomAccessory {
         },
       );
     }
+    return true;
   }
 
   private async refreshZone() {

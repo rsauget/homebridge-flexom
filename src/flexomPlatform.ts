@@ -64,8 +64,12 @@ export class FlexomPlatform implements DynamicPlatformPlugin {
           log: this.log,
           zone,
         };
-        this.api.updatePlatformAccessories([existingAccessory]);
-        new FlexomZone(this, existingAccessory);
+        const flexomZone = new FlexomZone(this, existingAccessory);
+        if (await flexomZone.setupService()) {
+          this.api.updatePlatformAccessories([existingAccessory]);
+        } else {
+          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+        }
       } else {
         this.log.info(`Adding new accessory: ${zone.name}`);
         const accessory = new this.api.platformAccessory(zone.name, uuid);
@@ -74,8 +78,11 @@ export class FlexomPlatform implements DynamicPlatformPlugin {
           log: this.log,
           zone,
         };
-        new FlexomZone(this, accessory);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        const flexomZone = new FlexomZone(this, accessory);
+        if (await flexomZone.setupService()) {
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]); 
+        }
+        
       }
     }
 
