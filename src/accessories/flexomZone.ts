@@ -2,84 +2,95 @@ import _ from 'lodash';
 import {
   PlatformAccessory,
 } from 'homebridge';
-
-import * as Flexom from '@rsauget/flexom-lib';
+import { Logger } from 'homebridge/lib/logger';
 import { FlexomPlatform } from '../flexomPlatform';
-import { FlexomAccessory } from '../flexomAccessory';
-import { LightBulb, WindowCovering } from '../services';
+import { createLightBulb } from '../services/lightBulb';
+import { createWindowCovering } from '../services/windowCovering';
 
-export class FlexomZone extends FlexomAccessory {
-  private static readonly DEBOUNCE_DELAY = 1000 /* ms */;
+const DEBOUNCE_DELAY = 1000 /* ms */;
+
+export type FlexomZone = ReturnType<typeof createFlexomZone>;
+
+export async function createFlexomZone({
+  platform,
+  accessory,
+}: {
+  platform: FlexomPlatform,
+  accessory: PlatformAccessory
+}) {
+  const {
+    Service,
+    Characteristic,
+    flexom,
+  } = platform;
+  const { zone } = accessory.context;
+  const log = Logger.withPrefix(`${platform.log.prefix}:${zone.name}`);
+
+  accessory.getService(Service.AccessoryInformation)!
+    .setCharacteristic(Characteristic.Manufacturer, 'Flexom');
   
-  private zone: Flexom.Zone;
-  private lightBulb?: LightBulb;
-  private windowCovering?: WindowCovering;
+  accessory.getService(Service.AccessoryInformation)!
+    .setCharacteristic(Characteristic.Model, 'Zone')
+    .setCharacteristic(Characteristic.SerialNumber, zone.id);
   
-  constructor(platform: FlexomPlatform, accessory: PlatformAccessory) {
-    super(platform, accessory);
-    this.zone = this.accessory.context.zone;
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Model, 'Zone')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.zone.id);
-  }
-
-  public async setupService() {
-    ({ settings: this.zone.settings } = await this.flexom.getZone(this.zone.id));
-    if (!this.zone.settings.BRI && !this.zone.settings.BRIEXT) {
-      return false;
-    }
-    if (!this.lightBulb && this.zone.settings.BRI) {
-      this.lightBulb = new LightBulb(
-        this.platform,
-        this.accessory,
-        this.zone.name,
-        async () => {
-          await this.refreshZone();
-          return this.zone.settings.BRI!.value > 0;
-        },
-        async (isOn: boolean) => {
-          await this.updateZoneBRI(isOn ? 1 : 0);
-        });
-    }
-    if (!this.windowCovering && this.zone.settings.BRIEXT) {
-      this.windowCovering = new WindowCovering(
-        this.platform,
-        this.accessory,
-        this.zone.name,
-        async () => {
-          await this.refreshZone();
-          return this.zone.settings.BRIEXT!.value * 100;
-        },
-        async (value: number) => {
-          await this.updateZoneBRIEXT(value / 100);
-        },
-      );
-    }
-    return true;
-  }
-
-  private async refreshZone() {
-    this.log.debug(`${this.zone.name}: flexom request getZone`);
-    const { settings } = await this.flexom.getZone(this.zone.id);
-    this.zone.settings = {
-      ...this.zone.settings,
-      ...settings,
-    };
-  }
+  const refreshZone = async () => {
+    log.debug('flexom request getZone');
+    const { settings } = await flexom.getZone(zone);
+    _.merge(zone, { settings });
+  };
     
-  private updateZoneBRI = _.debounce(
+  const updateZoneBRI = _.debounce(
     async (value) => {
-      this.log.debug(`${this.zone.name}: flexom request setZoneFactor BRI ${value}`);
-      await this.flexom.setZoneFactor(this.zone.id, 'BRI', value);
+      log.debug(`flexom request setZoneFactor BRI ${value}`);
+      await flexom.setZoneFactor({ id: zone.id, factor: 'BRI', value });
     },
-    FlexomZone.DEBOUNCE_DELAY,
+    DEBOUNCE_DELAY,
   );
 
-  private updateZoneBRIEXT = _.debounce(
+  const updateZoneBRIEXT = _.debounce(
     async (value) => {
-      this.log.debug(`${this.zone.name}: flexom request setZoneFactor BRIEXT ${value}`);
-      await this.flexom.setZoneFactor(this.zone.id, 'BRIEXT', value);
+      log.debug(`flexom request setZoneFactor BRIEXT ${value}`);
+      await flexom.setZoneFactor({ id: zone.id, factor: 'BRIEXT', value });
     },
-    FlexomZone.DEBOUNCE_DELAY,
+    DEBOUNCE_DELAY,
   );
-}
+
+  const { settings } = await flexom.getZone(zone);
+  _.merge(zone, { settings });
+  if (!zone.settings.BRI && !zone.settings.BRIEXT) {
+    return false;
+  }
+  if (zone.settings.BRI) {
+    log.info('Create light bulb');
+    await createLightBulb({
+      log,
+      platform,
+      accessory,
+      name: zone.name,
+      getState: async () => {
+        await refreshZone();
+        return zone.settings.BRI!.value > 0;
+      },
+      setState: async (isOn: boolean) => {
+        await updateZoneBRI(isOn ? 1 : 0);
+      },
+    });
+  }
+  if (zone.settings.BRIEXT) {
+    log.info('Create window covering');
+    await createWindowCovering({
+      log,
+      platform,
+      accessory,
+      name: zone.name,
+      getState: async () => {
+        await refreshZone();
+        return zone.settings.BRIEXT!.value * 100;
+      },
+      setState: async (value: number) => {
+        await updateZoneBRIEXT(value / 100);
+      },
+    });
+  }
+  return true;
+} 

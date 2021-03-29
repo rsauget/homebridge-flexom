@@ -1,49 +1,64 @@
 import {
-  Logger,
   PlatformAccessory,
-  Service,
 } from 'homebridge';
+import { Logger } from 'homebridge/lib/logger';
 import { FlexomPlatform } from '../flexomPlatform';
-import { bindService } from './helpers';
+import { bindService, createPoller } from './helpers';
 
-export class LightBulb {
-  private service: Service;
-  private log: Logger;
-  private isOn?: boolean;
+export type LightBulb = ReturnType<typeof createLightBulb>;
 
-  public constructor(
-    private platform: FlexomPlatform,
-    accessory: PlatformAccessory,
-    private name: string,
-    private getState: () => Promise<boolean>,
-    private setState: (isOn: boolean) => Promise<void>,
-  ) {
-    ({
-      log: this.log,
-    } = platform);
-    this.service = accessory.getService(platform.Service.Lightbulb)
-          || accessory.addService(platform.Service.Lightbulb);
-    this.service.setCharacteristic(platform.Characteristic.Name, name);
-    bindService<boolean>(
-      this.service.getCharacteristic(platform.Characteristic.On),
-      this.getLightState.bind(this),
-      this.setLightState.bind(this),
-    );
-  }
+export async function createLightBulb({
+  platform,
+  accessory,
+  name,
+  getState,
+  setState,
+  log: parentLogger,
+}: {
+  platform: FlexomPlatform,
+  accessory: PlatformAccessory,
+  name: string,
+  getState: () => Promise<boolean>,
+  setState: (isOn: boolean) => Promise<void>,
+  log?: Logger,
+}) {
+  const {
+    Service,
+    Characteristic,
+  } = platform;
+  const log = Logger.withPrefix(`${(parentLogger ?? platform.log).prefix}:LightBulb`);
+  const service = accessory.getService(Service.Lightbulb)
+          || accessory.addService(Service.Lightbulb);
+  service.setCharacteristic(Characteristic.Name, name);
 
-  async getLightState() {
-    this.log.debug(`${this.name}: homekit get light state ${this.isOn}`);
-    setImmediate(async () => {
-      const isOn = await this.getState();
-      this.log.info(`${this.name}: light changed from ${this.isOn} to ${isOn}`);
-      this.isOn = isOn;
-      this.service.updateCharacteristic(this.platform.Characteristic.On, isOn);
-    });
-    return this.isOn;
-  }
+  let isOn: boolean;
 
-  async setLightState(isOn: boolean) {
-    this.log.debug(`${this.name}: homekit set light state ${isOn}`);
-    await this.setState(isOn);
-  }
+  const refreshLightState = async () => {
+    log.debug(`refresh state (current: ${isOn})`);
+    const newIsOn = await getState();
+    if (newIsOn === isOn) {
+      return;
+    }
+    service.updateCharacteristic(Characteristic.On, newIsOn);
+    log.info(`changed from ${isOn} to ${newIsOn}`);
+    isOn = newIsOn;
+  };
+  
+  const getLightState = async () => {
+    log.debug(`homekit get state ${isOn}`);
+    return isOn;
+  };
+
+  const setLightState = async (isOn: boolean) => {
+    log.debug(`homekit set state ${isOn}`);
+    await setState(isOn);
+  };
+
+  await createPoller(refreshLightState).start();
+
+  bindService<boolean>({
+    characteristic: service.getCharacteristic(Characteristic.On),
+    getter: getLightState,
+    setter: setLightState,
+  });
 }

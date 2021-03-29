@@ -1,11 +1,18 @@
-import { API } from 'homebridge';
+import { API, PlatformAccessory, Logging, PlatformConfig } from 'homebridge';
 
 import { PLATFORM_NAME } from './settings';
-import { FlexomPlatform } from './flexomPlatform'; 
+import { createFlexomPlatform, FlexomPlatformConfig } from './flexomPlatform'; 
 
-/**
- * This method registers the platform with Homebridge
- */
-export = (api: API) => {
-  api.registerPlatform(PLATFORM_NAME, FlexomPlatform);
-}
+export default (api: API) => {
+  api.registerPlatform(PLATFORM_NAME, class {
+    platform: ReturnType<typeof createFlexomPlatform>;
+    constructor(log: Logging, config: PlatformConfig, api: API) {
+      this.platform = createFlexomPlatform({ log, config: config as FlexomPlatformConfig, api });
+    }
+
+    configureAccessory(accessory: PlatformAccessory) {
+      this.platform.configureAccessory({ accessory });
+    }
+  });
+};
+
