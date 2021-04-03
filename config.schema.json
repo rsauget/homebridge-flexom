@@ -29,6 +29,17 @@
         "default": true,
         "description": "Flexom Zones (i.e. rooms) will appear as devices with light and rolling shutter controls."
       },
+      "excludedZones": {
+        "title": "Excluded zones",
+        "type": "array",
+        "items": {
+          "title": "Zone id (see accessory serial number in Home app)",
+          "type": "string"
+        },
+        "condition": {
+          "functionBody": "return model.zones === true;"
+        }
+      },
       "things": {
         "title": "Show Flexom Things",
         "type": "boolean",

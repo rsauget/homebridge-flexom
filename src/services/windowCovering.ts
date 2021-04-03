@@ -52,6 +52,7 @@ export async function createWindowCovering({
       return;
     }
     service.updateCharacteristic(Characteristic.CurrentPosition, newPosition);
+    service.updateCharacteristic(Characteristic.PositionState, await getWindowCoveringPositionState());
     log.info(`changed from ${currentPosition} to ${newPosition}`);
     currentPosition = newPosition;
   };

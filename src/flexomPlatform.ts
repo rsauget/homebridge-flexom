@@ -55,7 +55,23 @@ export function createFlexomPlatform({
 
   const discoverZones = async ({ platform }: { platform: FlexomPlatform }) => {
     const zones = await platform.flexom.getZones();
-    await Promise.all(zones.map(setupZone({ platform })));
+    const activeAccessories = _.compact(
+      await Promise.all(
+        _.chain(zones)
+          .differenceWith(config.excludedZones, (zone, id) => zone.id === id)
+          .map(setupZone({ platform }))
+          .value(),
+      ),
+    );
+    _.chain(accessories)
+      .values()
+      .differenceBy(activeAccessories, 'UUID')
+      .map(accessory => {
+        log.info(`Unregister accessory: ${accessory.displayName} (UUID: ${accessory.UUID})`);
+        api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        _.unset(accessories, accessory.UUID);
+      })
+      .value();
   };
 
   const setupZone = ({ platform }: { platform: FlexomPlatform }) => async (zone: Flexom.Zone) => {
@@ -71,19 +87,20 @@ export function createFlexomPlatform({
       },
     );
 
-    if (!existingAccessory) {
-      log.info(`Register accessory: ${zone.name}`);
-      api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    const hasZoneControls = await createFlexomZone({ platform, accessory });
+    if (!hasZoneControls) {
       return;
     }
-    
-    if (await createFlexomZone({ platform, accessory })) {
+
+    if (existingAccessory) {
       log.info(`Update accessory: ${zone.name}`);
       api.updatePlatformAccessories([accessory]);
     } else {
-      log.info(`Unregister accessory: ${zone.name}`);
-      api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      log.info(`Register accessory: ${zone.name}`);
+      api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
+    return accessory;
+    
   };
   
   return {
