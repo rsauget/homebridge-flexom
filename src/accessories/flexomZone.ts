@@ -2,10 +2,10 @@ import _ from 'lodash';
 import {
   PlatformAccessory,
 } from 'homebridge';
-import { Logger } from 'homebridge/lib/logger';
 import { FlexomPlatform } from '../flexomPlatform';
 import { createLightBulb } from '../services/lightBulb';
 import { createWindowCovering } from '../services/windowCovering';
+import { createChildLogger } from '../services/helpers';
 
 const DEBOUNCE_DELAY = 1000 /* ms */;
 
@@ -23,8 +23,8 @@ export async function createFlexomZone({
     Characteristic,
     flexom,
   } = platform;
-  const { zone } = accessory.context;
-  const log = Logger.withPrefix(`${platform.log.prefix}:${zone.name}`);
+  const { zone, log: parentLogger } = accessory.context;
+  const log = createChildLogger(parentLogger, zone.name);
 
   accessory.getService(Service.AccessoryInformation)!
     .setCharacteristic(Characteristic.Manufacturer, 'Flexom');

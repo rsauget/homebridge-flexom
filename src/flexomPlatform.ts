@@ -34,13 +34,14 @@ export function createFlexomPlatform({
   log: Logger,
   config: FlexomPlatformConfig,
   api: API,
-}) {
+  }) {
   const { Service, Characteristic, uuid: { generate: generateUuid } } = api.hap;
   const accessories: Record<string, PlatformAccessory> = {};
 
   log.debug(`Finished initializing platform: ${config.name}`);
 
   api.on('didFinishLaunching', async () => {
+    log.debug('didFinishLaunching');
     const flexom = await Flexom.createClient(config);
     const platform = {
       flexom,
@@ -55,6 +56,7 @@ export function createFlexomPlatform({
 
   const discoverZones = async ({ platform }: { platform: FlexomPlatform }) => {
     const zones = await platform.flexom.getZones();
+    log.info(`Found ${zones.length} zones`);
     const activeAccessories = _.compact(
       await Promise.all(
         _.chain(zones)
@@ -63,6 +65,7 @@ export function createFlexomPlatform({
           .value(),
       ),
     );
+    log.info(`Setup ${activeAccessories.length} zones`);
     _.chain(accessories)
       .values()
       .differenceBy(activeAccessories, 'UUID')
@@ -81,7 +84,7 @@ export function createFlexomPlatform({
       existingAccessory ?? new api.platformAccessory(zone.name, uuid),
       {
         context: {
-          log: log,
+          log,
           zone,
         },
       },

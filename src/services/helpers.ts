@@ -4,6 +4,7 @@ import {
   CharacteristicValue,
   CharacteristicGetCallback,
   CharacteristicSetCallback,
+  Logger,
 } from 'homebridge';
 import _ from 'lodash';
 
@@ -112,4 +113,17 @@ export function createPoller(
   };
 
   return poller;
+}
+
+export function createChildLogger(parentLogger: Logger, prefix: string) {
+  return _.merge(
+    {},
+    parentLogger,
+    {
+      prefix: _.chain([parentLogger.prefix, prefix])
+        .compact()
+        .join(':')
+        .value(),
+    },
+  );
 }

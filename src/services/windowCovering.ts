@@ -1,8 +1,7 @@
 import _ from 'lodash';
-import { Characteristic, PlatformAccessory } from 'homebridge';
-import { Logger } from 'homebridge/lib/logger';
+import { Characteristic, PlatformAccessory, Logger } from 'homebridge';
 import { FlexomPlatform } from '../flexomPlatform';
-import { bindService, createPoller, Poller } from './helpers';
+import { bindService, createChildLogger, createPoller, Poller } from './helpers';
 
 const POLLING_INTERVAL = 3000 /* ms */;
 const POLLING_TIMEOUT = 60000 /* ms */;
@@ -26,13 +25,13 @@ export async function createWindowCovering({
   name: string,
   getState: () => Promise<number>,
     setState: (targetPosition: number) => Promise<void>,
-  log?: Logger,
+  log: Logger,
 }) {
   const {
     Service,
     Characteristic,
   } = platform;
-  const log = Logger.withPrefix(`${(parentLogger ?? platform.log).prefix}:WindowCovering`);
+  const log = createChildLogger(parentLogger, 'WindowCovering');
   const service = accessory.getService(Service.WindowCovering)
         || accessory.addService(Service.WindowCovering);
   service.setCharacteristic(Characteristic.Name, name);

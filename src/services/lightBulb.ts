@@ -1,9 +1,9 @@
 import {
   PlatformAccessory,
+  Logger,
 } from 'homebridge';
-import { Logger } from 'homebridge/lib/logger';
 import { FlexomPlatform } from '../flexomPlatform';
-import { bindService, createPoller } from './helpers';
+import { bindService, createChildLogger, createPoller } from './helpers';
 
 export type LightBulb = ReturnType<typeof createLightBulb>;
 
@@ -20,13 +20,13 @@ export async function createLightBulb({
   name: string,
   getState: () => Promise<boolean>,
   setState: (isOn: boolean) => Promise<void>,
-  log?: Logger,
+  log: Logger,
 }) {
   const {
     Service,
     Characteristic,
   } = platform;
-  const log = Logger.withPrefix(`${(parentLogger ?? platform.log).prefix}:LightBulb`);
+  const log = createChildLogger(parentLogger, 'LightBulb');
   const service = accessory.getService(Service.Lightbulb)
           || accessory.addService(Service.Lightbulb);
   service.setCharacteristic(Characteristic.Name, name);
