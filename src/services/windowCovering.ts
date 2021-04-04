@@ -2,9 +2,10 @@ import _ from 'lodash';
 import { Characteristic, PlatformAccessory, Logger } from 'homebridge';
 import { FlexomPlatform } from '../flexomPlatform';
 import { bindService, createChildLogger, createPoller, Poller } from './helpers';
+import { MINUTE, SECOND } from './constants';
 
-const POLLING_INTERVAL = 3000 /* ms */;
-const POLLING_TIMEOUT = 60000 /* ms */;
+const POLLING_INTERVAL = 3 * SECOND;
+const POLLING_TIMEOUT = 5 * MINUTE;
 
 type PositionState = typeof Characteristic.PositionState.INCREASING
   | typeof Characteristic.PositionState.DECREASING
@@ -97,22 +98,17 @@ export async function createWindowCovering({
     if (shortPoller) {
       shortPoller.cancel();
     }
-    let iteration = 1;
     shortPoller = await createPoller(async (cancel) => {
       const currentPosition = await getWindowCoveringCurrentPosition();
-      log.debug(`polling n.${iteration} ` +
-        `(current: ${currentPosition} / target: ${targetPosition})`);
+      log.debug(`polling (current: ${currentPosition} / target: ${targetPosition})`);
       if (currentPosition === targetPosition) {
         return cancel();
       }
-      iteration++;
     }, {
       delay: POLLING_INTERVAL,
       timeout: POLLING_TIMEOUT,
       onTimeout: async () => {
-        log.warn(`failed to reach target ${targetPosition} after ${iteration} attempts`);
-        log.warn(`resetting to current value ${currentPosition}`);
-        await setWindowCoveringTargetPosition(currentPosition, { poll: false });
+        log.warn(`failed to reach target ${targetPosition} after ${POLLING_TIMEOUT} milliseconds, giving up`);
       },
     }).start();
   };
