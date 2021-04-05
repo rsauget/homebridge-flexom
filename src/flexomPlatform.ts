@@ -16,6 +16,12 @@ export type FlexomPlatformConfig = PlatformConfig & {
   email: string;
   password: string;
   zones: boolean;
+  excludeZones: boolean;
+  excludedZones: {
+    id: string;
+    light: boolean;
+    window: boolean;
+  }[];
   things: boolean;
 };
 
@@ -57,11 +63,11 @@ export function createFlexomPlatform({
   const discoverZones = async ({ platform }: { platform: FlexomPlatform }) => {
     const zones = await platform.flexom.getZones();
     log.info(`Found ${zones.length} zones`);
+    const excludedZones = config.excludeZones ? _.keyBy(config.excludedZones, 'id') : {};
     const activeAccessories = _.compact(
       await Promise.all(
         _.chain(zones)
-          .differenceWith(config.excludedZones, (zone, id) => zone.id === id)
-          .map(setupZone({ platform }))
+          .map(setupZone({ platform, excludedZones }))
           .value(),
       ),
     );
@@ -77,7 +83,13 @@ export function createFlexomPlatform({
       .value();
   };
 
-  const setupZone = ({ platform }: { platform: FlexomPlatform }) => async (zone: Flexom.Zone) => {
+  const setupZone = ({
+    platform,
+    excludedZones,
+  }: {
+    platform: FlexomPlatform,
+    excludedZones: _.Dictionary<FlexomPlatformConfig['excludedZones'][number]>
+  }) => async (zone: Flexom.Zone) => {
     const uuid = generateUuid(zone.id);
     const existingAccessory = _.get(accessories, uuid);
     const accessory = _.merge(
@@ -90,7 +102,11 @@ export function createFlexomPlatform({
       },
     );
 
-    const hasZoneControls = await createFlexomZone({ platform, accessory });
+    const hasZoneControls = await createFlexomZone({
+      platform,
+      accessory,
+      exclusions: _.pick(_.find(excludedZones, { id: zone.id }), ['light', 'window']),
+    });
     if (!hasZoneControls) {
       return;
     }

@@ -14,9 +14,14 @@ export type FlexomZone = ReturnType<typeof createFlexomZone>;
 export async function createFlexomZone({
   platform,
   accessory,
+  exclusions = {},
 }: {
   platform: FlexomPlatform,
-  accessory: PlatformAccessory
+  accessory: PlatformAccessory,
+  exclusions: Partial<{
+    light: boolean,
+    window: boolean
+  }>
 }) {
   const {
     Service,
@@ -57,10 +62,14 @@ export async function createFlexomZone({
 
   const { settings } = await flexom.getZone(zone);
   _.merge(zone, { settings });
-  if (!zone.settings.BRI && !zone.settings.BRIEXT) {
+  
+  const isLightEnabled = zone.settings.BRI && !exclusions.light;
+  const isWindowEnabled = zone.settings.BRIEXT && !exclusions.window;
+
+  if (!isLightEnabled && !isWindowEnabled) {
     return false;
   }
-  if (zone.settings.BRI) {
+  if (isLightEnabled) {
     log.info('Create light bulb');
     await createLightBulb({
       log,
@@ -75,8 +84,13 @@ export async function createFlexomZone({
         await updateZoneBRI(isOn ? 1 : 0);
       },
     });
+  } else {
+    const service = accessory.getService(Service.Lightbulb);
+    if (service) {
+      accessory.removeService(service);
+    }
   }
-  if (zone.settings.BRIEXT) {
+  if (isWindowEnabled) {
     log.info('Create window covering');
     await createWindowCovering({
       log,
@@ -91,6 +105,11 @@ export async function createFlexomZone({
         await updateZoneBRIEXT(value / 100);
       },
     });
+  } else {
+    const service = accessory.getService(Service.WindowCovering);
+    if (service) {
+      accessory.removeService(service);
+    }
   }
   return true;
 } 
