@@ -102,24 +102,28 @@ export function createFlexomPlatform({
       },
     );
 
-    const hasZoneControls = await createFlexomZone({
-      platform,
-      accessory,
-      exclusions: _.pick(_.find(excludedZones, { id: zone.id }), ['light', 'window']),
-    });
-    if (!hasZoneControls) {
-      return;
-    }
+    try {
+      const hasZoneControls = await createFlexomZone({
+        platform,
+        accessory,
+        exclusions: _.pick(_.find(excludedZones, { id: zone.id }), ['light', 'window']),
+      });
+      if (!hasZoneControls) {
+        return;
+      }
 
-    if (existingAccessory) {
-      log.info(`Update accessory: ${zone.name}`);
-      api.updatePlatformAccessories([accessory]);
-    } else {
-      log.info(`Register accessory: ${zone.name}`);
-      api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      if (existingAccessory) {
+        log.info(`Update accessory: ${zone.name}`);
+        api.updatePlatformAccessories([accessory]);
+      } else {
+        log.info(`Register accessory: ${zone.name}`);
+        api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
+      return accessory;
+    } catch (err) {
+      log.error(`Failed to setup zone ${zone.name}: ${err}`);
+      return existingAccessory;
     }
-    return accessory;
-    
   };
   
   return {
