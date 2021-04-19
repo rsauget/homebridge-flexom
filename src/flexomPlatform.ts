@@ -57,6 +57,9 @@ export function createFlexomPlatform({
     };
     if (config.zones) {
       await discoverZones({ platform });
+    } else {
+      log.warn('"Show Flexom Zones" is disabled in config, nothing to do');
+      await cleanup();
     }
   });
 
@@ -66,12 +69,14 @@ export function createFlexomPlatform({
     const excludedZones = config.excludeZones ? _.keyBy(config.excludedZones, 'id') : {};
     const activeAccessories = _.compact(
       await Promise.all(
-        _.chain(zones)
-          .map(setupZone({ platform, excludedZones }))
-          .value(),
+        _.map(zones, setupZone({ platform, excludedZones })),
       ),
     );
     log.info(`Setup ${activeAccessories.length} zones`);
+    await cleanup({ activeAccessories });
+  };
+
+  const cleanup = async ({ activeAccessories }: { activeAccessories: PlatformAccessory[] } = { activeAccessories: [] }) => {
     _.chain(accessories)
       .values()
       .differenceBy(activeAccessories, 'UUID')
