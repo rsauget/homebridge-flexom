@@ -30,21 +30,21 @@
     "homebridge-plugin"
   ],
   "devDependencies": {
-    "@types/lodash": "^4.14.168",
-    "@types/node": "^14.14.35",
-    "@typescript-eslint/eslint-plugin": "^4.19.0",
-    "@typescript-eslint/parser": "^4.19.0",
-    "eslint": "^7.22.0",
+    "@types/lodash": "^4.14.171",
+    "@types/node": "^16.4.1",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "@typescript-eslint/parser": "^4.28.4",
+    "eslint": "^7.31.0",
     "homebridge": "^1.3.4",
-    "homebridge-config-ui-x": "^4.41.0",
-    "nodemon": "^2.0.7",
-    "release-it": "^14.5.1",
+    "homebridge-config-ui-x": "^4.41.1",
+    "nodemon": "^2.0.12",
+    "release-it": "^14.10.0",
     "rimraf": "^3.0.2",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.3"
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@rsauget/flexom-lib": "^2.0.6",
+    "@rsauget/flexom-lib": "^2.0.7",
     "lodash": "^4.17.21"
   }
 }
