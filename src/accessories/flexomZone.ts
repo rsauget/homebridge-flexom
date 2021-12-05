@@ -40,7 +40,7 @@ export async function createFlexomZone({
 
   let settings: Flexom.Zone['settings'] = await flexom.getZoneSettings(zone);
 
-  const refreshZone = _.throttle(async () => {
+  const refreshZone = _.debounce(async () => {
     logger.debug('flexom request getZone');
     settings = await flexom.getZoneSettings(zone);
   }, DEBOUNCE_DELAY);

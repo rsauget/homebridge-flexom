@@ -76,18 +76,12 @@ export async function createWindowCovering({
     return DECREASING;
   };
 
-  const positionStateService = await bindService<PositionState>({
+  await bindService<PositionState>({
     service,
     characteristic: api.hap.Characteristic.PositionState,
     initialValue: STOPPED,
     getState: getPositionState,
     logger,
+    dependencies: [currentPositionService, targetPositionService],
   });
-
-  targetPositionService.onValue(async () =>
-    positionStateService.setValue(await getPositionState())
-  );
-  currentPositionService.onValue(async () =>
-    positionStateService.setValue(await getPositionState())
-  );
 }

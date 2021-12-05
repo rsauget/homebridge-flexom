@@ -13,6 +13,15 @@ type CharacteristicSetter<T> = (
 ) => Promise<void | { aborted: boolean }>;
 type CharacteristicListener<T> = (value: T) => Promise<void>;
 
+type CharacteristicService<
+  T extends CharacteristicValue = CharacteristicValue
+> = {
+  getValue: () => T;
+  setValue: (newValue: T) => Promise<void>;
+  refreshValue: () => Promise<void>;
+  onValue: (listener: CharacteristicListener<T>) => number;
+};
+
 export async function bindService<T extends CharacteristicValue>({
   service,
   characteristic,
@@ -20,6 +29,7 @@ export async function bindService<T extends CharacteristicValue>({
   initialValue,
   setState,
   logger,
+  dependencies,
 }: {
   service: Service;
   characteristic: Parameters<Service['updateCharacteristic']>[0];
@@ -27,36 +37,42 @@ export async function bindService<T extends CharacteristicValue>({
   getState?: CharacteristicGetter<T>;
   setState?: CharacteristicSetter<T>;
   logger: Logger;
-}) {
+  dependencies?: Array<Pick<CharacteristicService, 'onValue'>>;
+}): Promise<CharacteristicService<T>> {
   const listeners: Array<CharacteristicListener<T>> = [];
 
   if (initialValue === undefined && getState === undefined) {
     throw new Error('at least one of initialValue or getState required');
   }
 
-  let value: T = initialValue;
+  let internalValue: T = initialValue;
+
+  const setInternalValue = (newValue: T) => {
+    service.updateCharacteristic(characteristic, newValue);
+    if (internalValue === newValue) {
+      logger.debug(`state unchanged (current: ${internalValue})`);
+    } else {
+      logger.info(`changed from ${internalValue} to ${newValue}`);
+    }
+    internalValue = newValue;
+  };
+
+  const refreshValue = async () => {
+    if (!getState) return;
+    logger.debug(`refresh state (current: ${internalValue})`);
+    const newValue = await getState();
+    setInternalValue(newValue);
+  };
 
   const setValue = async (newValue: T) => {
     const result = await setState?.(newValue);
     if (result?.aborted) {
       logger.info('update aborted');
+      await refreshValue();
       return;
     }
-    service.updateCharacteristic(characteristic, newValue);
-    if (value === newValue) {
-      logger.debug(`state unchanged (current: ${value})`);
-    } else {
-      logger.info(`changed from ${value} to ${newValue}`);
-    }
-    value = newValue;
-    await Promise.all(_.map(listeners, (listener) => listener(value)));
-  };
-
-  const refreshValue = async () => {
-    if (!getState) return;
-    logger.debug(`refresh state (current: ${value})`);
-    const newValue = await getState();
-    await setValue(newValue);
+    setInternalValue(newValue);
+    await Promise.all(_.map(listeners, (listener) => listener(newValue)));
   };
 
   await refreshValue();
@@ -65,9 +81,9 @@ export async function bindService<T extends CharacteristicValue>({
     .getCharacteristic(characteristic)
     ?.on('get', (callback: CharacteristicGetCallback) => {
       try {
-        logger.debug(`homekit get state ${value}`);
+        logger.debug(`homekit get state ${internalValue}`);
         setImmediate(() => refreshValue());
-        callback(undefined, value);
+        callback(undefined, internalValue);
       } catch (err: any) {
         logger.error('failed to get state');
         callback(err);
@@ -93,9 +109,16 @@ export async function bindService<T extends CharacteristicValue>({
       }
     );
 
+  await Promise.all(
+    _.map(dependencies, async (dependency) =>
+      dependency.onValue(async () => refreshValue())
+    )
+  );
+
   return {
-    getValue: () => value,
+    getValue: () => internalValue,
     setValue,
+    refreshValue,
     onValue: (listener: CharacteristicListener<T>) => listeners.push(listener),
   };
 }
