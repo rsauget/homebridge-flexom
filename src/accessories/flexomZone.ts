@@ -6,7 +6,7 @@ import {
   createWindowCovering,
   WindowCovering,
 } from '../services/windowCovering';
-import { createChildLogger } from '../utils';
+import { createChildLogger, toLogJson } from '../utils';
 
 const DEBOUNCE_DELAY = 1000; /* ms */
 
@@ -124,6 +124,7 @@ export async function createFlexomZone({
     events: ['ACTUATOR_HARDWARE_STATE'],
     zoneId: zone.id,
     listener: (data) => {
+      logger.info(`Received event: ${toLogJson(data)}`);
       switch (data.factorId) {
         case 'BRI': {
           if (!lightBulb) return;
