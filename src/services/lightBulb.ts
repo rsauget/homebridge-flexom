@@ -2,7 +2,7 @@ import type { PlatformAccessory, Logger, API } from 'homebridge';
 import { createChildLogger } from '../utils';
 import { bindService } from './helpers';
 
-export type LightBulb = ReturnType<typeof createLightBulb>;
+export type LightBulb = Awaited<ReturnType<typeof createLightBulb>>;
 
 export async function createLightBulb({
   api,
@@ -25,7 +25,7 @@ export async function createLightBulb({
     accessory.addService(api.hap.Service.Lightbulb);
   service.setCharacteristic(api.hap.Characteristic.Name, name);
 
-  await bindService<boolean>({
+  const lightOnService = await bindService<boolean>({
     service,
     characteristic: api.hap.Characteristic.On,
     initialValue: await getState(),
@@ -33,4 +33,6 @@ export async function createLightBulb({
     setState,
     logger,
   });
+
+  return { lightOnService };
 }

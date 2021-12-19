@@ -9,7 +9,7 @@ import * as Flexom from '@rsauget/flexom-lib';
 
 import { createFlexomZone } from './accessories/flexomZone';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { loggerAdapter } from './utils';
+import { loggerAdapter, toLogJson } from './utils';
 
 export type FlexomPlatformConfig = PlatformConfig & {
   email: string;
@@ -102,8 +102,8 @@ export function createFlexomPlatform({
         ]);
       }
       return accessory;
-    } catch (err) {
-      logger.error(`Failed to setup zone ${zone.name}: ${err}`);
+    } catch (err: any) {
+      logger.error(`Failed to setup zone ${zone.name}: ${toLogJson(err)}`);
       return existingAccessory;
     }
   };

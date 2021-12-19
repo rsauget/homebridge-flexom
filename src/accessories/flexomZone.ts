@@ -1,8 +1,11 @@
 import _ from 'lodash';
 import * as Flexom from '@rsauget/flexom-lib';
 import type { PlatformAccessory, Logger, API } from 'homebridge';
-import { createLightBulb } from '../services/lightBulb';
-import { createWindowCovering } from '../services/windowCovering';
+import { createLightBulb, LightBulb } from '../services/lightBulb';
+import {
+  createWindowCovering,
+  WindowCovering,
+} from '../services/windowCovering';
 import { createChildLogger } from '../utils';
 
 const DEBOUNCE_DELAY = 1000; /* ms */
@@ -71,9 +74,11 @@ export async function createFlexomZone({
   if (!isLightEnabled && !isWindowEnabled) {
     return false;
   }
+
+  let lightBulb: LightBulb;
   if (isLightEnabled) {
     logger.info('Create light bulb');
-    await createLightBulb({
+    lightBulb = await createLightBulb({
       api,
       logger,
       accessory,
@@ -90,9 +95,11 @@ export async function createFlexomZone({
       accessory.removeService(service);
     }
   }
+
+  let windowCovering: WindowCovering;
   if (isWindowEnabled) {
     logger.info('Create window covering');
-    await createWindowCovering({
+    windowCovering = await createWindowCovering({
       api,
       logger,
       accessory,
@@ -110,5 +117,33 @@ export async function createFlexomZone({
       accessory.removeService(service);
     }
   }
+
+  const { STOPPED } = api.hap.Characteristic.PositionState;
+  await flexom.subscribe({
+    id: `homebridge-flexom-${zone.id}`,
+    events: ['ACTUATOR_HARDWARE_STATE'],
+    zoneId: zone.id,
+    listener: (data) => {
+      switch (data.factorId) {
+        case 'BRI': {
+          if (!lightBulb) return;
+          const value = data.value.value > 0;
+          lightBulb.lightOnService.setInternalValue(value);
+          break;
+        }
+        case 'BRIEXT': {
+          if (!windowCovering) return;
+          const value = data.value.value * 100;
+          windowCovering.currentPositionService.setInternalValue(value);
+          if (windowCovering.positionStateService.getValue() === STOPPED) {
+            windowCovering.targetPositionService.setInternalValue(value);
+          }
+          break;
+        }
+        default:
+      }
+    },
+  });
+
   return true;
 }

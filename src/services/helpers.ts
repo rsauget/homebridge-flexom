@@ -6,6 +6,7 @@ import type {
   Logger,
 } from 'homebridge';
 import _ from 'lodash';
+import { toLogJson } from '../utils';
 
 type CharacteristicGetter<T> = () => Promise<T>;
 type CharacteristicSetter<T> = (
@@ -18,6 +19,7 @@ type CharacteristicService<
 > = {
   getValue: () => T;
   setValue: (newValue: T) => Promise<void>;
+  setInternalValue: (newValue: T) => void;
   refreshValue: () => Promise<void>;
   onValue: (listener: CharacteristicListener<T>) => number;
 };
@@ -85,7 +87,7 @@ export async function bindService<T extends CharacteristicValue>({
         setImmediate(() => refreshValue());
         callback(undefined, internalValue);
       } catch (err: any) {
-        logger.error('failed to get state');
+        logger.error(`failed to get state: ${toLogJson(err)}`);
         callback(err);
       }
     });
@@ -103,7 +105,7 @@ export async function bindService<T extends CharacteristicValue>({
           await setValue(newValue as T);
           callback();
         } catch (err: any) {
-          logger.error('failed to reach target state');
+          logger.error(`failed to reach target state: ${toLogJson(err)}`);
           callback(err);
         }
       }
@@ -118,6 +120,7 @@ export async function bindService<T extends CharacteristicValue>({
   return {
     getValue: () => internalValue,
     setValue,
+    setInternalValue,
     refreshValue,
     onValue: (listener: CharacteristicListener<T>) => listeners.push(listener),
   };

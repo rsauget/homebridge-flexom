@@ -12,7 +12,7 @@ type PositionState =
   | typeof Characteristic.PositionState.DECREASING
   | typeof Characteristic.PositionState.STOPPED;
 
-export type WindowCovering = ReturnType<typeof createWindowCovering>;
+export type WindowCovering = Awaited<ReturnType<typeof createWindowCovering>>;
 
 export async function createWindowCovering({
   api,
@@ -76,7 +76,7 @@ export async function createWindowCovering({
     return DECREASING;
   };
 
-  await bindService<PositionState>({
+  const positionStateService = await bindService<PositionState>({
     service,
     characteristic: api.hap.Characteristic.PositionState,
     initialValue: STOPPED,
@@ -84,4 +84,10 @@ export async function createWindowCovering({
     logger,
     dependencies: [currentPositionService, targetPositionService],
   });
+
+  return {
+    currentPositionService,
+    targetPositionService,
+    positionStateService,
+  };
 }

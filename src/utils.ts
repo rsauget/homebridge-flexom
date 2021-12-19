@@ -14,15 +14,34 @@ export function createChildLogger({
   });
 }
 
+export function toLogJson(args: any) {
+  return JSON.stringify({
+    ...args,
+    err:
+      args?.err &&
+      Object.defineProperties(args.err, {
+        message: {
+          enumerable: true,
+        },
+        code: {
+          enumerable: true,
+        },
+        stack: {
+          enumerable: true,
+        },
+      }),
+  });
+}
+
 export function loggerAdapter({ logger }: { logger: Logger }) {
   return {
     info: (args: unknown, msg: string | undefined) =>
-      logger.info(`${msg} ${JSON.stringify(args)}`),
+      logger.info(`${msg} ${toLogJson(args)}`),
     warn: (args: unknown, msg: string | undefined) =>
-      logger.warn(`${msg} ${JSON.stringify(args)}`),
+      logger.warn(`${msg} ${toLogJson(args)}`),
     error: (args: unknown, msg: string | undefined) =>
-      logger.error(`${msg} ${JSON.stringify(args)}`),
+      logger.error(`${msg} ${toLogJson(args)}`),
     debug: (args: unknown, msg: string | undefined) =>
-      logger.debug(`${msg} ${JSON.stringify(args)}`),
+      logger.debug(`${msg} ${toLogJson(args)}`),
   };
 }

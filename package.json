@@ -1,7 +1,7 @@
 {
   "displayName": "Flexom",
   "name": "@rsauget/homebridge-flexom",
-  "version": "3.0.0-beta.3",
+  "version": "3.0.0-beta.4",
   "description": "Control Flexom devices with Homekit.",
   "author": {
     "name": "Raphaël Sauget"
@@ -50,7 +50,7 @@
     "typescript": "^4.5.2"
   },
   "dependencies": {
-    "@rsauget/flexom-lib": "^3.2.6",
+    "@rsauget/flexom-lib": "^3.2.7",
     "lodash": "^4.17.21"
   }
 }
