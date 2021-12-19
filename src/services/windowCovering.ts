@@ -53,10 +53,6 @@ export async function createWindowCovering({
     logger,
   });
 
-  targetPositionService.onValue(async (value) =>
-    currentPositionService.setValue(value)
-  );
-
   const { STOPPED, INCREASING, DECREASING } =
     api.hap.Characteristic.PositionState;
 

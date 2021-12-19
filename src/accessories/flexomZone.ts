@@ -55,6 +55,7 @@ export async function createFlexomZone({
       factor: 'BRI',
       value,
       tolerance,
+      wait: false,
     });
   }, DEBOUNCE_DELAY);
 
@@ -65,6 +66,7 @@ export async function createFlexomZone({
       factor: 'BRIEXT',
       value,
       tolerance,
+      wait: false,
     });
   }, DEBOUNCE_DELAY);
 
@@ -134,9 +136,10 @@ export async function createFlexomZone({
         }
         case 'BRIEXT': {
           if (!windowCovering) return;
+          const positionState = windowCovering.positionStateService.getValue();
           const value = data.value.value * 100;
           windowCovering.currentPositionService.setInternalValue(value);
-          if (windowCovering.positionStateService.getValue() === STOPPED) {
+          if (positionState === STOPPED) {
             windowCovering.targetPositionService.setInternalValue(value);
           }
           break;
