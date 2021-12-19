@@ -50,7 +50,7 @@
     "typescript": "^4.5.2"
   },
   "dependencies": {
-    "@rsauget/flexom-lib": "^3.2.7",
+    "@rsauget/flexom-lib": "^3.2.8",
     "lodash": "^4.17.21"
   }
 }
