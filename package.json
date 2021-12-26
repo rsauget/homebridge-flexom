@@ -57,5 +57,15 @@
   "dependencies": {
     "@rsauget/flexom-lib": "^3.2.8",
     "lodash": "^4.17.21"
-  }
+  },
+  "funding": [
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/rsauget1"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/rsauget"
+    }
+  ]
 }
