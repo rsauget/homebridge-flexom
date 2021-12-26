@@ -33,15 +33,36 @@ export function toLogJson(args: any) {
   });
 }
 
-export function loggerAdapter({ logger }: { logger: Logger }) {
+function loggerParamsAdapter(
+  log: (msg: string) => void
+): (argsOrMsg: string | unknown, msg?: string) => void {
+  return (argsOrMsg, msg) => {
+    if (_.isString(argsOrMsg)) {
+      log(argsOrMsg);
+      return;
+    }
+
+    if (!msg) {
+      log(toLogJson(argsOrMsg));
+      return;
+    }
+
+    log(`${msg} ${toLogJson(argsOrMsg)}`);
+  };
+}
+
+type SupportedLogLevels = 'info' | 'warn' | 'error' | 'debug';
+
+export function loggerAdapter({ logger }: { logger: Logger }): {
+  [key in SupportedLogLevels]: (
+    argsOrMsg: string | unknown,
+    msg?: string
+  ) => void;
+} {
   return {
-    info: (args: unknown, msg: string | undefined) =>
-      logger.info(`${msg} ${toLogJson(args)}`),
-    warn: (args: unknown, msg: string | undefined) =>
-      logger.warn(`${msg} ${toLogJson(args)}`),
-    error: (args: unknown, msg: string | undefined) =>
-      logger.error(`${msg} ${toLogJson(args)}`),
-    debug: (args: unknown, msg: string | undefined) =>
-      logger.debug(`${msg} ${toLogJson(args)}`),
+    info: loggerParamsAdapter(logger.info),
+    warn: loggerParamsAdapter(logger.warn),
+    error: loggerParamsAdapter(logger.error),
+    debug: loggerParamsAdapter(logger.debug),
   };
 }
