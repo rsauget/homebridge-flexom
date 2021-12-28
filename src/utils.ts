@@ -60,9 +60,9 @@ export function loggerAdapter({ logger }: { logger: Logger }): {
   ) => void;
 } {
   return {
-    info: loggerParamsAdapter(logger.info),
-    warn: loggerParamsAdapter(logger.warn),
-    error: loggerParamsAdapter(logger.error),
-    debug: loggerParamsAdapter(logger.debug),
+    info: loggerParamsAdapter(logger.info?.bind(logger)),
+    warn: loggerParamsAdapter(logger.warn?.bind(logger)),
+    error: loggerParamsAdapter(logger.error?.bind(logger)),
+    debug: loggerParamsAdapter(logger.debug?.bind(logger)),
   };
 }
