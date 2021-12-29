@@ -6,6 +6,12 @@
 
 # Homebridge Flexom plugin
 
+[![Downloads](https://img.shields.io/npm/dt/@rsauget/homebridge-flexom)](https://www.npmjs.com/package/@rsauget/homebridge-flexom)
+[![Version](https://img.shields.io/npm/v/@rsauget/homebridge-flexom)](https://www.npmjs.com/package/@rsauget/homebridge-flexom)
+[![GitHub issues](https://img.shields.io/github/issues/rsauget/homebridge-flexom)](https://github.com/rsauget/homebridge-flexom/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/rsauget/homebridge-flexom)](https://github.com/rsauget/homebridge-flexom/pulls)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rsauget/homebridge-flexom/Build%20and%20Lint)](https://github.com/rsauget/homebridge-flexom)
+
 This Homebridge plugin exposes Flexom smart homes to Apple HomeKit.
 
 ## Status
