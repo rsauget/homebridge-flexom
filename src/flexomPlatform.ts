@@ -156,6 +156,11 @@ export function createFlexomPlatform({
   logger.debug(`Finished initializing platform: ${config.name}`);
 
   api.on('didFinishLaunching', async () => {
+    if (_.isEmpty(config.email) || _.isEmpty(config.password)) {
+      logger.warn('Flexom email and password are required');
+      return;
+    }
+
     logger.debug('didFinishLaunching');
     const flexom = await Flexom.createClient({
       email: config.email,
