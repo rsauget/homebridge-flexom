@@ -25,6 +25,123 @@ export type FlexomPlatformConfig = PlatformConfig & {
   things: boolean;
 };
 
+async function cleanup({
+  accessories,
+  activeAccessories = [],
+  logger,
+  api,
+}: {
+  accessories: Record<string, PlatformAccessory>;
+  activeAccessories?: PlatformAccessory[];
+  logger: Logger;
+  api: API;
+}) {
+  _.chain(accessories)
+    .values()
+    .differenceBy(activeAccessories, 'UUID')
+    .forEach((accessory) => {
+      logger.info(
+        `Unregister accessory: ${accessory.displayName} (UUID: ${accessory.UUID})`
+      );
+      api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+        accessory,
+      ]);
+      _.unset(accessories, accessory.UUID);
+    })
+    .value();
+}
+
+async function setupZone({
+  accessories,
+  logger,
+  excludedZones,
+  tolerance,
+  zone,
+  flexom,
+  api,
+}: {
+  accessories: Record<string, PlatformAccessory>;
+  excludedZones: _.Dictionary<FlexomPlatformConfig['excludedZones'][number]>;
+  tolerance: number;
+  zone: Flexom.Zone;
+  flexom: Flexom.Client;
+  logger: Logger;
+  api: API;
+}): Promise<PlatformAccessory | undefined> {
+  const uuid = api.hap.uuid.generate(zone.id);
+  const existingAccessory = _.get(accessories, uuid);
+  const accessory =
+    // eslint-disable-next-line new-cap
+    existingAccessory ?? new api.platformAccessory(zone.name, uuid);
+
+  try {
+    const hasZoneControls = await createFlexomZone({
+      api,
+      accessory,
+      logger,
+      zone,
+      flexom,
+      tolerance,
+      exclusions: _.chain(excludedZones)
+        .find({ id: zone.id })
+        .pick(['light', 'window'])
+        .value(),
+    });
+    if (!hasZoneControls) {
+      return undefined;
+    }
+
+    if (existingAccessory) {
+      logger.info(`Update accessory: ${zone.name}`);
+      api.updatePlatformAccessories([accessory]);
+    } else {
+      logger.info(`Register accessory: ${zone.name}`);
+      api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    }
+    return accessory;
+  } catch (err: any) {
+    logger.error(`Failed to setup zone ${zone.name}: ${toLogJson(err)}`);
+    return existingAccessory;
+  }
+}
+
+async function discoverZones({
+  accessories,
+  api,
+  flexom,
+  logger,
+  config,
+}: {
+  accessories: Record<string, PlatformAccessory>;
+  api: API;
+  flexom: Flexom.Client;
+  logger: Logger;
+  config: FlexomPlatformConfig;
+}) {
+  const zones = await flexom.getZones();
+  logger.info(`Found ${zones.length} zones`);
+  const excludedZones = config.excludeZones
+    ? _.keyBy(config.excludedZones, 'id')
+    : {};
+  const activeAccessories = _.compact(
+    await Promise.all(
+      _.map(zones, async (zone) =>
+        setupZone({
+          accessories,
+          tolerance: config.tolerance,
+          excludedZones,
+          zone,
+          flexom,
+          logger,
+          api,
+        })
+      )
+    )
+  );
+  logger.info(`Setup ${activeAccessories.length} zones`);
+  await cleanup({ accessories, activeAccessories, logger, api });
+}
+
 export function createFlexomPlatform({
   logger,
   config,
@@ -38,98 +155,6 @@ export function createFlexomPlatform({
 
   logger.debug(`Finished initializing platform: ${config.name}`);
 
-  const cleanup = async ({
-    activeAccessories = [],
-  }: {
-    activeAccessories?: PlatformAccessory[];
-  } = {}) => {
-    _.chain(accessories)
-      .values()
-      .differenceBy(activeAccessories, 'UUID')
-      .forEach((accessory) => {
-        logger.info(
-          `Unregister accessory: ${accessory.displayName} (UUID: ${accessory.UUID})`
-        );
-        api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-          accessory,
-        ]);
-        _.unset(accessories, accessory.UUID);
-      })
-      .value();
-  };
-
-  const setupZone: (args: {
-    excludedZones: _.Dictionary<FlexomPlatformConfig['excludedZones'][number]>;
-    tolerance: number;
-    zone: Flexom.Zone;
-    flexom: Flexom.Client;
-  }) => Promise<PlatformAccessory | undefined> = async ({
-    excludedZones,
-    tolerance,
-    zone,
-    flexom,
-  }) => {
-    const uuid = api.hap.uuid.generate(zone.id);
-    const existingAccessory = _.get(accessories, uuid);
-    const accessory =
-      // eslint-disable-next-line new-cap
-      existingAccessory ?? new api.platformAccessory(zone.name, uuid);
-
-    try {
-      const hasZoneControls = await createFlexomZone({
-        api,
-        accessory,
-        logger,
-        zone,
-        flexom,
-        tolerance,
-        exclusions: _.chain(excludedZones)
-          .find({ id: zone.id })
-          .pick(['light', 'window'])
-          .value(),
-      });
-      if (!hasZoneControls) {
-        return undefined;
-      }
-
-      if (existingAccessory) {
-        logger.info(`Update accessory: ${zone.name}`);
-        api.updatePlatformAccessories([accessory]);
-      } else {
-        logger.info(`Register accessory: ${zone.name}`);
-        api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-          accessory,
-        ]);
-      }
-      return accessory;
-    } catch (err: any) {
-      logger.error(`Failed to setup zone ${zone.name}: ${toLogJson(err)}`);
-      return existingAccessory;
-    }
-  };
-
-  const discoverZones = async ({ flexom }: { flexom: Flexom.Client }) => {
-    const zones = await flexom.getZones();
-    logger.info(`Found ${zones.length} zones`);
-    const excludedZones = config.excludeZones
-      ? _.keyBy(config.excludedZones, 'id')
-      : {};
-    const activeAccessories = _.compact(
-      await Promise.all(
-        _.map(zones, async (zone) =>
-          setupZone({
-            tolerance: config.tolerance,
-            excludedZones,
-            zone,
-            flexom,
-          })
-        )
-      )
-    );
-    logger.info(`Setup ${activeAccessories.length} zones`);
-    await cleanup({ activeAccessories });
-  };
-
   api.on('didFinishLaunching', async () => {
     logger.debug('didFinishLaunching');
     const flexom = await Flexom.createClient({
@@ -138,10 +163,10 @@ export function createFlexomPlatform({
       logger: loggerAdapter({ logger }),
     });
     if (config.zones) {
-      await discoverZones({ flexom });
+      await discoverZones({ accessories, api, logger, config, flexom });
     } else {
       logger.warn('"Show Flexom Zones" is disabled in config, nothing to do');
-      await cleanup();
+      await cleanup({ accessories, api, logger });
     }
   });
 
