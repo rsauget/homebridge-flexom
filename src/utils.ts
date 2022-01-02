@@ -14,6 +14,7 @@ export function createChildLogger({
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toLogJson(args: any) {
   return JSON.stringify({
     ...args,

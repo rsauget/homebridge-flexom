@@ -99,7 +99,7 @@ async function setupZone({
       api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
     return accessory;
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error(`Failed to setup zone ${zone.name}: ${toLogJson(err)}`);
     return existingAccessory;
   }
@@ -156,22 +156,31 @@ export function createFlexomPlatform({
   logger.debug(`Finished initializing platform: ${config.name}`);
 
   api.on('didFinishLaunching', async () => {
-    if (_.isEmpty(config.email) || _.isEmpty(config.password)) {
-      logger.warn('Flexom email and password are required');
-      return;
-    }
+    try {
+      if (!config.zones) {
+        logger.warn('"Show Flexom Zones" is disabled in config, nothing to do');
+        await cleanup({ accessories, api, logger });
+        return;
+      }
 
-    logger.debug('didFinishLaunching');
-    const flexom = await Flexom.createClient({
-      email: config.email,
-      password: config.password,
-      logger: loggerAdapter({ logger }),
-    });
-    if (config.zones) {
+      if (_.isEmpty(config.email) || _.isEmpty(config.password)) {
+        logger.warn('Flexom email and password are required');
+        return;
+      }
+
+      const flexom = await Flexom.createClient({
+        email: config.email,
+        password: config.password,
+        logger: loggerAdapter({ logger }),
+      });
+
       await discoverZones({ accessories, api, logger, config, flexom });
-    } else {
-      logger.warn('"Show Flexom Zones" is disabled in config, nothing to do');
-      await cleanup({ accessories, api, logger });
+    } catch (err: unknown) {
+      if (_.get(err, 'response.status') === 401) {
+        logger.error('Incorrect Flexom email or password');
+      } else {
+        logger.error(`Flexom initialization error: ${toLogJson(err)}`);
+      }
     }
   });
 
