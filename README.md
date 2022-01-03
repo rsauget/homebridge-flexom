@@ -6,6 +6,7 @@
 
 # Homebridge Flexom plugin
 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 [![Downloads](https://img.shields.io/npm/dt/@rsauget/homebridge-flexom)](https://www.npmjs.com/package/@rsauget/homebridge-flexom)
 [![Version](https://img.shields.io/npm/v/@rsauget/homebridge-flexom)](https://www.npmjs.com/package/@rsauget/homebridge-flexom)
 [![GitHub issues](https://img.shields.io/github/issues/rsauget/homebridge-flexom)](https://github.com/rsauget/homebridge-flexom/issues)

@@ -62,10 +62,6 @@
     {
       "type": "paypal",
       "url": "https://paypal.me/rsauget1"
-    },
-    {
-      "type": "github",
-      "url": "https://github.com/sponsors/rsauget"
     }
   ]
 }
