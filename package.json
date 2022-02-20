@@ -45,7 +45,7 @@
     "eslint-plugin-import": "2.25.4",
     "eslint-plugin-prettier": "4.0.0",
     "homebridge": "1.4.0",
-    "homebridge-config-ui-x": "4.41.5",
+    "homebridge-config-ui-x": "4.42.0",
     "mocha": "9.2.1",
     "nodemon": "2.0.15",
     "prettier": "2.5.1",
