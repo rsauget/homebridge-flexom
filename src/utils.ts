@@ -14,12 +14,16 @@ export function createChildLogger({
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function toLogJson(args: any) {
+function hasErr(args: object): args is { err: object } {
+  return 'err' in args && typeof args === 'object' && args != null;
+}
+
+export function toLogJson(args: unknown) {
+  if (!args || typeof args !== 'object') return JSON.stringify(args);
   return JSON.stringify({
     ...args,
     err:
-      args?.err &&
+      hasErr(args) &&
       Object.defineProperties(args.err, {
         message: {
           enumerable: true,
@@ -66,4 +70,11 @@ export function loggerAdapter({ logger }: { logger: Logger }): {
     error: loggerParamsAdapter(logger.error?.bind(logger)),
     debug: loggerParamsAdapter(logger.debug?.bind(logger)),
   };
+}
+
+export function realError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  return Object.assign(new Error('Unknown error'), { cause: error });
 }
