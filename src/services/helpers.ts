@@ -6,7 +6,7 @@ import type {
   Logger,
 } from 'homebridge';
 import _ from 'lodash';
-import { toLogJson } from '../utils';
+import { realError, toLogJson } from '../utils';
 
 type CharacteristicGetter<T> = () => Promise<T>;
 type CharacteristicSetter<T> = (
@@ -86,9 +86,9 @@ export async function bindService<T extends CharacteristicValue>({
         logger.debug(`homekit get state ${internalValue}`);
         setImmediate(() => refreshValue());
         callback(undefined, internalValue);
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(`failed to get state: ${toLogJson(err)}`);
-        callback(err);
+        callback(realError(err));
       }
     });
 
@@ -104,9 +104,9 @@ export async function bindService<T extends CharacteristicValue>({
           logger.debug(`homekit set state ${newValue}`);
           await setValue(newValue as T);
           callback();
-        } catch (err: any) {
+        } catch (err: unknown) {
           logger.error(`failed to reach target state: ${toLogJson(err)}`);
-          callback(err);
+          callback(realError(err));
         }
       }
     );
