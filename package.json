@@ -48,7 +48,7 @@
     "homebridge-config-ui-x": "4.52.2",
     "mocha": "10.2.0",
     "nodemon": "3.0.1",
-    "prettier": "2.8.8",
+    "prettier": "3.0.3",
     "release-it": "17.0.0",
     "rimraf": "3.0.2",
     "ts-node": "10.9.1",
